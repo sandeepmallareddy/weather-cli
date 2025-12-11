@@ -3,9 +3,6 @@ import urllib.request
 import json
 
 
-LONDON_COORDS = (51.5074, -0.1278)
-
-
 def get_coordinates(city: str) -> tuple[str, float, float]:
     url = f"https://geocoding-api.open-meteo.com/v1/search?name={city}"
     try:
@@ -13,8 +10,8 @@ def get_coordinates(city: str) -> tuple[str, float, float]:
             data = json.loads(response.read())
         result = data["results"][0]
         return (city, result["latitude"], result["longitude"])
-    except (KeyError, IndexError, urllib.error.URLError):
-        return ("London", *LONDON_COORDS)
+    except (KeyError, IndexError):
+        raise ValueError(f"City not found: {city}")
 
 
 WEATHER_CODES: dict[int, str] = {

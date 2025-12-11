@@ -10,10 +10,8 @@ def test_get_coordinates_london():
 
 
 def test_get_coordinates_invalid_city():
-    city, lat, lon = get_coordinates("InvalidCityXYZ123")
-    assert city == "London"
-    assert lat == pytest.approx(51.5, abs=0.1)
-    assert lon == pytest.approx(-0.12, abs=0.1)
+    with pytest.raises(ValueError, match="City not found"):
+        get_coordinates("FakeCityXYZ123")
 
 
 def test_get_weather_london():
