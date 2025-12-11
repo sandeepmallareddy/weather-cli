@@ -1,5 +1,6 @@
 import pytest
-from src.weather import get_coordinates, get_weather
+from unittest.mock import patch
+from src.weather import get_coordinates, get_weather, main
 
 
 def test_get_coordinates_london():
@@ -38,3 +39,21 @@ def test_units_conversion():
 
     assert imperial["temperature"] == pytest.approx(expected_temp_f, abs=0.2)
     assert imperial["windspeed"] == pytest.approx(expected_wind_mph, abs=0.1)
+
+
+def test_main_metric(capsys):
+    with patch("sys.argv", ["weather", "London"]):
+        main()
+    captured = capsys.readouterr()
+    assert "London:" in captured.out
+    assert "°C" in captured.out
+    assert "km/h" in captured.out
+
+
+def test_main_imperial(capsys):
+    with patch("sys.argv", ["weather", "London", "--units", "imperial"]):
+        main()
+    captured = capsys.readouterr()
+    assert "London:" in captured.out
+    assert "°F" in captured.out
+    assert "mph" in captured.out
