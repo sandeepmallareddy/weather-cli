@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch
-from src.weather import get_coordinates, get_weather, main
+from src.weather import get_coordinates, get_weather, get_forecast, main
 
 
 def test_get_coordinates_london():
@@ -57,3 +57,33 @@ def test_main_imperial(capsys):
     assert "London:" in captured.out
     assert "°F" in captured.out
     assert "mph" in captured.out
+
+
+def test_get_forecast_returns_3_days():
+    forecast = get_forecast(51.5, -0.12)
+    assert len(forecast) == 3
+    for day in forecast:
+        assert "date" in day
+        assert "temp_max" in day
+        assert "temp_min" in day
+        assert "description" in day
+        assert isinstance(day["temp_max"], float)
+        assert isinstance(day["temp_min"], float)
+
+
+def test_get_forecast_imperial_units():
+    metric = get_forecast(51.5, -0.12, units="metric")
+    imperial = get_forecast(51.5, -0.12, units="imperial")
+
+    # Imperial temps should be higher (Fahrenheit vs Celsius)
+    assert imperial[0]["temp_max"] > metric[0]["temp_max"]
+
+
+def test_main_forecast(capsys):
+    with patch("sys.argv", ["weather", "London", "--forecast"]):
+        main()
+    captured = capsys.readouterr()
+    assert "London" in captured.out
+    # Should show 3 days
+    lines = [l for l in captured.out.strip().split("\n") if l]
+    assert len(lines) >= 3
