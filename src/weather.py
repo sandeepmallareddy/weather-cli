@@ -1,13 +1,20 @@
+import argparse
 import urllib.request
 import json
 
 
-def get_coordinates(city: str) -> tuple[float, float]:
+LONDON_COORDS = (51.5074, -0.1278)
+
+
+def get_coordinates(city: str) -> tuple[str, float, float]:
     url = f"https://geocoding-api.open-meteo.com/v1/search?name={city}"
-    with urllib.request.urlopen(url) as response:
-        data = json.loads(response.read())
-    result = data["results"][0]
-    return (result["latitude"], result["longitude"])
+    try:
+        with urllib.request.urlopen(url) as response:
+            data = json.loads(response.read())
+        result = data["results"][0]
+        return (city, result["latitude"], result["longitude"])
+    except (KeyError, IndexError, urllib.error.URLError):
+        return ("London", *LONDON_COORDS)
 
 
 WEATHER_CODES: dict[int, str] = {
@@ -46,3 +53,17 @@ def get_weather(lat: float, lon: float) -> dict[str, float | str]:
         "windspeed": float(current["windspeed"]),
         "description": WEATHER_CODES.get(weather_code, "Unknown"),
     }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Get weather for a city")
+    parser.add_argument("city", help="City name")
+    args = parser.parse_args()
+
+    city, lat, lon = get_coordinates(args.city)
+    weather = get_weather(lat, lon)
+    print(f"{city}: {weather['temperature']}°C, {weather['description']}, Wind: {weather['windspeed']} km/h")
+
+
+if __name__ == "__main__":
+    main()
