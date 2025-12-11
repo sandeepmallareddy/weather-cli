@@ -39,15 +39,23 @@ WEATHER_CODES: dict[int, str] = {
 }
 
 
-def get_weather(lat: float, lon: float) -> dict[str, float | str]:
+def get_weather(lat: float, lon: float, units: str = "metric") -> dict[str, float | str]:
     url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true"
     with urllib.request.urlopen(url) as response:
         data = json.loads(response.read())
     current = data["current_weather"]
     weather_code = current["weathercode"]
+
+    temperature = float(current["temperature"])
+    windspeed = float(current["windspeed"])
+
+    if units == "imperial":
+        temperature = temperature * 9 / 5 + 32
+        windspeed = windspeed * 0.621371
+
     return {
-        "temperature": float(current["temperature"]),
-        "windspeed": float(current["windspeed"]),
+        "temperature": round(temperature, 1),
+        "windspeed": round(windspeed, 1),
         "description": WEATHER_CODES.get(weather_code, "Unknown"),
     }
 
@@ -55,11 +63,21 @@ def get_weather(lat: float, lon: float) -> dict[str, float | str]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Get weather for a city")
     parser.add_argument("city", help="City name")
+    parser.add_argument("--units", choices=["metric", "imperial"], default="metric",
+                        help="Unit system (default: metric)")
     args = parser.parse_args()
 
     city, lat, lon = get_coordinates(args.city)
-    weather = get_weather(lat, lon)
-    print(f"{city}: {weather['temperature']}°C, {weather['description']}, Wind: {weather['windspeed']} km/h")
+    weather = get_weather(lat, lon, args.units)
+
+    if args.units == "imperial":
+        temp_unit = "°F"
+        wind_unit = "mph"
+    else:
+        temp_unit = "°C"
+        wind_unit = "km/h"
+
+    print(f"{city}: {weather['temperature']}{temp_unit}, {weather['description']}, Wind: {weather['windspeed']} {wind_unit}")
 
 
 if __name__ == "__main__":
