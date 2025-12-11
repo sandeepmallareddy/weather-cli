@@ -60,24 +60,53 @@ def get_weather(lat: float, lon: float, units: str = "metric") -> dict[str, floa
     }
 
 
+def get_forecast(lat: float, lon: float, units: str = "metric") -> list[dict[str, float | str]]:
+    url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto&forecast_days=3"
+    with urllib.request.urlopen(url) as response:
+        data = json.loads(response.read())
+
+    daily = data["daily"]
+    forecast = []
+
+    for i in range(3):
+        temp_max = float(daily["temperature_2m_max"][i])
+        temp_min = float(daily["temperature_2m_min"][i])
+
+        if units == "imperial":
+            temp_max = temp_max * 9 / 5 + 32
+            temp_min = temp_min * 9 / 5 + 32
+
+        forecast.append({
+            "date": daily["time"][i],
+            "temp_max": round(temp_max, 1),
+            "temp_min": round(temp_min, 1),
+            "description": WEATHER_CODES.get(daily["weathercode"][i], "Unknown"),
+        })
+
+    return forecast
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Get weather for a city")
     parser.add_argument("city", help="City name")
     parser.add_argument("--units", choices=["metric", "imperial"], default="metric",
                         help="Unit system (default: metric)")
+    parser.add_argument("--forecast", action="store_true",
+                        help="Show 3-day forecast")
     args = parser.parse_args()
 
     city, lat, lon = get_coordinates(args.city)
-    weather = get_weather(lat, lon, args.units)
+    temp_unit = "°F" if args.units == "imperial" else "°C"
 
-    if args.units == "imperial":
-        temp_unit = "°F"
-        wind_unit = "mph"
+    if args.forecast:
+        forecast = get_forecast(lat, lon, args.units)
+        print(f"{city} - 3 Day Forecast:")
+        for day in forecast:
+            print(f"  {day['date']}: {day['temp_min']}-{day['temp_max']}{temp_unit}, {day['description']}")
     else:
-        temp_unit = "°C"
-        wind_unit = "km/h"
-
-    print(f"{city}: {weather['temperature']}{temp_unit}, {weather['description']}, Wind: {weather['windspeed']} {wind_unit}")
+        weather = get_weather(lat, lon, args.units)
+        wind_unit = "mph" if args.units == "imperial" else "km/h"
+        print(f"{city}: {weather['temperature']}{temp_unit}, {weather['description']}, Wind: {weather['windspeed']} {wind_unit}")
 
 
 if __name__ == "__main__":
